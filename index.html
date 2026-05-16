@@ -285,6 +285,36 @@ input:focus,select:focus{outline:none;border-color:var(--indigo)}
 </div>
 
 <!-- SW -->
+<!-- Log Edit Modal -->
+<div class="overlay" id="log-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="log-modal-title">ערוך ביצוע</div>
+    <div class="form-grid">
+      <div class="fg">
+        <label>הרגל</label>
+        <select id="fl-habit"></select>
+      </div>
+      <div class="fg">
+        <label>תאריך</label>
+        <input id="fl-date" type="date"/>
+      </div>
+      <div class="fg">
+        <label>שעת ביצוע</label>
+        <input id="fl-time" type="time"/>
+      </div>
+      <div class="fg" id="fl-value-row" style="display:none">
+        <label>כמות</label>
+        <input id="fl-value" type="number" min="0"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('log-modal')">ביטול</button>
+      <button class="btn btn-primary" onclick="saveLogEntry()">שמור</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
@@ -459,7 +489,9 @@ function toggleCheck(habitId){
   if(existing>=0){
     habitLog.splice(existing,1);
   } else {
-    habitLog.push({habitId, date:today, value:1, type:'check', ts:new Date().toISOString()});
+    const now = new Date();
+    const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    habitLog.push({habitId, date:today, value:1, type:'check', time, ts:now.toISOString()});
   }
   ignoreNext=1;
   db.ref(UID+'/log').set(habitLog.length?habitLog:null);
@@ -473,8 +505,15 @@ function addCount(habitId, delta){
   if(existing){
     existing.value = Math.max(0, (existing.value||0)+delta);
     if(existing.value===0) habitLog.splice(habitLog.indexOf(existing),1);
+    else {
+      const now=new Date();
+      existing.time=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+      existing.ts=now.toISOString();
+    }
   } else if(delta>0){
-    habitLog.push({habitId, date:today, value:1, type:'count', ts:new Date().toISOString()});
+    const now=new Date();
+    const time=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    habitLog.push({habitId, date:today, value:1, type:'count', time, ts:now.toISOString()});
   }
   ignoreNext=1;
   db.ref(UID+'/log').set(habitLog.length?habitLog:null);
@@ -571,16 +610,71 @@ function renderHistory(){
     const d=new Date(date+'T12:00:00');
     const dateStr=d.toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     const items=logs.map(l=>{
+      const realIdx=habitLog.indexOf(l);
       const h=habits.find(h=>h.id===l.habitId);
       const name=h?h.name:l.habitId;
       const val=l.type==='count'?` — ${l.value}${h?.unit?' '+h.unit:''}`:' — ✓ בוצע';
-      return `<div style="display:flex;align-items:center;gap:6px;margin-top:6px">
-        <span style="font-size:13px;font-weight:600">${name}</span>
-        <span style="font-size:12px;color:var(--muted)">${val}</span>
+      const timeStr=l.time?` · ${l.time}`:'';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:6px;flex:1">
+          <span style="font-size:13px;font-weight:600">${name}</span>
+          <span style="font-size:12px;color:var(--muted)">${val}${timeStr}</span>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="edit-btn" onclick="openEditLog(${realIdx})" title="ערוך">✏</button>
+          <button class="del-btn" style="font-size:16px" onclick="deleteLog(${realIdx})" title="מחק">&#xD7;</button>
+        </div>
       </div>`;
     }).join('');
     return `<div class="hist-item"><div class="hist-date">${dateStr}</div>${items}</div>`;
   }).join('');
+}
+
+function deleteLog(i){
+  if(confirm('למחוק ביצוע זה?')){
+    habitLog.splice(i,1);
+    ignoreNext=1;
+    db.ref(UID+'/log').set(habitLog.length?habitLog:null);
+    renderHistory();
+    renderToday();
+  }
+}
+
+let editLogIdx=null;
+function openEditLog(i){
+  editLogIdx=i;
+  const l=habitLog[i];
+  const h=habits.find(h=>h.id===l.habitId);
+  document.getElementById('log-modal-title').textContent='ערוך ביצוע';
+  document.getElementById('fl-habit').innerHTML=habits.map(hab=>`<option value="${hab.id}" ${hab.id===l.habitId?'selected':''}>${hab.name}</option>`).join('');
+  document.getElementById('fl-date').value=l.date||'';
+  document.getElementById('fl-time').value=l.time||'';
+  const isCount=l.type==='count';
+  document.getElementById('fl-value-row').style.display=isCount?'flex':'none';
+  if(isCount) document.getElementById('fl-value').value=l.value||1;
+  document.getElementById('log-modal').classList.add('open');
+}
+
+function saveLogEntry(){
+  const i=editLogIdx;
+  const l=habitLog[i];
+  const newHabitId=document.getElementById('fl-habit').value;
+  const newHabit=habits.find(h=>h.id===newHabitId);
+  const newDate=document.getElementById('fl-date').value;
+  const newTime=document.getElementById('fl-time').value;
+  habitLog[i]={
+    ...l,
+    habitId:newHabitId,
+    date:newDate,
+    time:newTime,
+    type:newHabit?.type||l.type,
+    value:newHabit?.type==='count'?parseInt(document.getElementById('fl-value').value)||1:1,
+  };
+  ignoreNext=1;
+  db.ref(UID+'/log').set(habitLog.length?habitLog:null);
+  closeModal('log-modal');
+  renderHistory();
+  renderToday();
 }
 
 function setHistHabitFilter(f){ histHabitFilter=f; renderHistory(); }
