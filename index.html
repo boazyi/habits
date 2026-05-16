@@ -449,7 +449,15 @@ function renderToday(){
       const target = h.target||1;
       const unit = h.unit||'';
       if(done){
-        bottomHtml = `<div class="count-done">✓ יעד הושג! ${val}${unit?'/'+unit:''}</div>`;
+        bottomHtml = `<div class="count-done" style="margin-bottom:8px">✓ יעד הושג! ${val}${unit?' '+unit:''}</div>
+          <div class="count-row">
+            <button class="count-btn" onclick="addCount('${h.id}',-1)">−</button>
+            <div>
+              <div class="count-val">${val}</div>
+              <div class="count-target">יעד: ${target}${unit?' '+unit:''}</div>
+            </div>
+            <button class="count-btn" onclick="addCount('${h.id}',1)">+</button>
+          </div>`;
       } else {
         bottomHtml = `<div class="count-row">
           <button class="count-btn" onclick="addCount('${h.id}',-1)">−</button>
