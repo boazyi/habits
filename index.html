@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#4f46e5"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="הרגלים"/>
+<title>מעקב הרגלים</title>
+<link rel="manifest" href="manifest.json"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Segoe UI','Assistant',Arial,sans-serif;direction:rtl;background:#f0f0f7;color:#1a1a2e}
+:root{
+  --indigo:#4f46e5;--indigo-light:#eef2ff;--indigo-dark:#3730a3;
+  --green:#16a34a;--green-light:#dcfce7;
+  --red:#dc2626;--red-light:#fee2e2;
+  --amber:#d97706;--amber-light:#fef3c7;
+  --bg:#f0f0f7;--card:#ffffff;--border:#e5e7eb;--text:#1a1a2e;--muted:#6b7280;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#0f1117;--card:#1a1d27;--border:#2a2d3a;--text:#e8eaf0;--muted:#8b92a5;
+  --indigo-light:#1e1b4b;--green-light:#052e16;--red-light:#450a0a;--amber-light:#1c1400;
+}}
+body{background:var(--bg);color:var(--text)}
+
+/* INSTALL BANNER */
+#install-banner{display:none;align-items:center;gap:12px;padding:12px 16px;background:var(--indigo);color:#fff;font-size:14px;position:sticky;top:0;z-index:200}
+#install-banner.show{display:flex}
+.install-text{flex:1}.install-title{font-weight:600;font-size:15px}.install-sub{font-size:12px;opacity:0.85;margin-top:2px}
+.install-btn{padding:7px 16px;border-radius:20px;background:#fff;color:var(--indigo);border:none;font-weight:600;font-size:13px;cursor:pointer}
+.install-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px;opacity:0.8}
+
+/* HEADER */
+.header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.header-title{font-size:18px;font-weight:700}
+.header-sub{font-size:12px;color:var(--muted);margin-top:1px}
+#sync-status{font-size:11px;margin-right:6px;color:var(--green)}
+
+/* TABS */
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:65px;z-index:99}
+.tab{flex:1;padding:12px 4px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);border-bottom:2.5px solid transparent;transition:all .2s;text-align:center}
+.tab.active{color:var(--indigo);border-bottom-color:var(--indigo)}
+
+.content{padding:16px;max-width:700px;margin:0 auto}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:10px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);transition:all .15s}
+.btn:hover{background:var(--bg)}
+.btn-primary{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+.btn-primary:hover{background:var(--indigo-dark)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
+.fab{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--indigo);color:#fff;border:none;border-radius:24px;padding:13px 28px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(79,70,229,0.4);z-index:50;transition:all .2s}
+.fab:hover{background:var(--indigo-dark)}
+.fab:active{transform:translateX(-50%) scale(0.97)}
+
+/* HABIT CARDS */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-size:15px;font-weight:700}
+.habit-list{display:flex;flex-direction:column;gap:10px}
+.habit-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;transition:box-shadow .2s}
+.habit-card.done-today{border-color:var(--green);background:linear-gradient(135deg,var(--card),var(--green-light))}
+.habit-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.habit-name{font-size:15px;font-weight:700}
+.habit-freq{font-size:11px;color:var(--muted);margin-top:2px}
+.habit-actions{display:flex;gap:6px}
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+.edit-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:0 4px;line-height:1;transition:color .15s}
+.edit-btn:hover{color:var(--indigo)}
+
+/* STREAK */
+.streak-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.streak-badge{display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;background:var(--amber-light);color:var(--amber)}
+.streak-pct{font-size:12px;color:var(--muted)}
+
+/* CHECK / COUNT BUTTONS */
+.check-btn{width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:14px;font-weight:600;color:var(--indigo);transition:all .2s}
+.check-btn:hover{background:var(--indigo-light);border-color:var(--indigo)}
+.check-btn.done{background:var(--green-light);border-color:var(--green);color:var(--green)}
+.count-row{display:flex;align-items:center;gap:8px}
+.count-btn{width:40px;height:40px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;font-size:18px;font-weight:700;color:var(--indigo);transition:all .15s;display:flex;align-items:center;justify-content:center}
+.count-btn:hover{background:var(--indigo-light);border-color:var(--indigo)}
+.count-val{flex:1;text-align:center;font-size:20px;font-weight:700;color:var(--text)}
+.count-target{font-size:12px;color:var(--muted);text-align:center;margin-top:4px}
+.count-done{width:100%;padding:8px;border-radius:10px;background:var(--green-light);border:1.5px solid var(--green);color:var(--green);font-size:13px;font-weight:700;margin-top:8px;text-align:center}
+
+/* WEEK DOTS */
+.week-dots{display:flex;gap:4px;margin-bottom:10px}
+.week-dot{flex:1;height:6px;border-radius:3px;background:var(--border)}
+.week-dot.done{background:var(--green)}
+.week-dot.today{outline:2px solid var(--indigo);outline-offset:1px}
+.week-dot.missed{background:var(--red-light)}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+@media(min-width:500px){.overlay{align-items:center}}
+.modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:500px;padding:20px 16px 32px;max-height:90vh;overflow-y:auto}
+@media(min-width:500px){.modal{border-radius:16px;padding:24px}}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:16px}
+.form-grid{display:flex;flex-direction:column;gap:12px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{font-size:12px;font-weight:600;color:var(--muted)}
+input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:inherit;direction:rtl}
+input:focus,select:focus{outline:none;border-color:var(--indigo)}
+.modal-actions{display:flex;gap:8px;margin-top:16px}
+.modal-actions .btn{flex:1;text-align:center}
+.track-type-btns{display:flex;gap:8px}
+.track-type-btn{flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);transition:all .2s;text-align:center}
+.track-type-btn.active{background:var(--indigo-light);border-color:var(--indigo);color:var(--indigo)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.stat-num{font-size:24px;font-weight:800;color:var(--indigo)}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px;font-weight:600}
+
+/* HISTORY */
+.hist-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:8px}
+.hist-date{font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600}
+.hist-name{font-size:14px;font-weight:700}
+.hist-val{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* COMPARE */
+.period-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.period-title{font-size:14px;font-weight:700;margin-bottom:12px}
+.quick-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.quick-btn{padding:5px 12px;border-radius:14px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s}
+.quick-btn:hover,.quick-btn.active{background:var(--indigo-light);border-color:var(--indigo);color:var(--indigo)}
+.date-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.date-row label{font-size:12px;font-weight:600;color:var(--muted)}
+.date-row input[type=date]{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit;width:auto}
+.compare-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.compare-row:last-child{border-bottom:none}
+.compare-label{font-weight:600;flex:1}
+.compare-a{color:var(--indigo);width:70px;text-align:center}
+.compare-b{color:var(--green);width:70px;text-align:center}
+.compare-diff{width:60px;text-align:center;font-weight:700}
+
+.empty{text-align:center;padding:48px 16px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-txt{font-size:14px;font-weight:600}
+
+/* CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:16px}
+.cal-day{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;cursor:default}
+.cal-day.done{background:var(--green);color:#fff}
+.cal-day.missed{background:var(--red-light);color:var(--red)}
+.cal-day.empty{background:transparent}
+.cal-day.today-cal{outline:2px solid var(--indigo);outline-offset:1px}
+.cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px}
+.cal-header div{text-align:center;font-size:10px;color:var(--muted);font-weight:600}
+.fc{padding:6px 14px;border-radius:16px;border:1.5px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s}
+.fc.active{background:var(--indigo-light);border-color:var(--indigo);color:var(--indigo)}
+.filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<div id="install-banner">
+  <div class="install-text">
+    <div class="install-title">התקן את האפליקציה</div>
+    <div class="install-sub">גישה מהירה, ללא דפדפן</div>
+  </div>
+  <button class="install-btn" onclick="installApp()">התקן</button>
+  <button class="install-close" onclick="dismissInstall()">&#x2715;</button>
+</div>
+
+<div class="header">
+  <div>
+    <div class="header-title">מעקב הרגלים</div>
+    <div class="header-sub">בנה את השגרה שלך <span id="sync-status"></span></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('today')">היום</div>
+  <div class="tab" onclick="switchTab('history')">היסטוריה</div>
+  <div class="tab" onclick="switchTab('stats')">סטטיסטיקות</div>
+</div>
+
+<!-- TODAY -->
+<div class="content" id="panel-today">
+  <div class="section-header" style="margin-top:4px">
+    <div class="section-title" id="today-title">ההרגלים שלי</div>
+  </div>
+  <div class="habit-list" id="habit-list"></div>
+  <div style="height:80px"></div>
+</div>
+
+<!-- HISTORY -->
+<div class="content" style="display:none" id="panel-history">
+  <div class="filter-row" id="hist-habit-filters"></div>
+  <div id="hist-list"></div>
+</div>
+
+<!-- STATS -->
+<div class="content" style="display:none" id="panel-stats">
+  <div class="stats-grid" id="main-stats"></div>
+
+  <!-- Per-habit stats -->
+  <div id="habit-stats-list"></div>
+
+  <!-- Period comparison -->
+  <div style="font-size:15px;font-weight:700;margin:20px 0 12px">השוואת תקופות</div>
+  <div class="period-card">
+    <div class="period-title" style="color:var(--indigo)">📅 תקופה א'</div>
+    <div class="date-row">
+      <label>מ-</label><input type="date" id="pa-from" onchange="renderStats()"/>
+      <label>עד</label><input type="date" id="pa-to" onchange="renderStats()"/>
+    </div>
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="setPeriod('a','week')">השבוע</button>
+      <button class="quick-btn" onclick="setPeriod('a','lastweek')">שבוע שעבר</button>
+      <button class="quick-btn" onclick="setPeriod('a','month')">החודש</button>
+      <button class="quick-btn" onclick="setPeriod('a','lastmonth')">חודש שעבר</button>
+    </div>
+    <div id="pa-results"></div>
+  </div>
+  <div class="period-card">
+    <div class="period-title" style="color:var(--green)">📅 תקופה ב'</div>
+    <div class="date-row">
+      <label>מ-</label><input type="date" id="pb-from" onchange="renderStats()"/>
+      <label>עד</label><input type="date" id="pb-to" onchange="renderStats()"/>
+    </div>
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="setPeriod('b','week')">השבוע</button>
+      <button class="quick-btn" onclick="setPeriod('b','lastweek')">שבוע שעבר</button>
+      <button class="quick-btn" onclick="setPeriod('b','month')">החודש</button>
+      <button class="quick-btn" onclick="setPeriod('b','lastmonth')">חודש שעבר</button>
+    </div>
+    <div id="pb-results"></div>
+  </div>
+  <div class="period-card" id="compare-card" style="display:none;margin-bottom:80px">
+    <div class="period-title">⚡ השוואה</div>
+    <div id="compare-grid"></div>
+  </div>
+</div>
+
+<button class="fab" id="fab-btn" onclick="openAddHabit()">+ הרגל חדש</button>
+
+<!-- Add/Edit Habit Modal -->
+<div class="overlay" id="habit-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="habit-modal-title">הרגל חדש</div>
+    <div class="form-grid">
+      <div class="fg">
+        <label>שם ההרגל</label>
+        <input id="f-hname" type="text" placeholder="למשל: שתיית מים"/>
+      </div>
+      <div class="fg">
+        <label>סוג מעקב</label>
+        <div class="track-type-btns">
+          <button class="track-type-btn active" id="tt-check" onclick="setTrackType('check')">✓ ביצעתי / לא</button>
+          <button class="track-type-btn" id="tt-count" onclick="setTrackType('count')">🔢 כמות</button>
+        </div>
+      </div>
+      <div class="fg" id="target-row" style="display:none">
+        <label>יעד יומי</label>
+        <input id="f-target" type="number" min="1" placeholder="8"/>
+      </div>
+      <div class="fg" id="unit-row" style="display:none">
+        <label>יחידה (למשל: כוסות, ק"מ, דקות)</label>
+        <input id="f-unit" type="text" placeholder="כוסות"/>
+      </div>
+      <div class="fg">
+        <label>תזכורת (אופציונלי)</label>
+        <input id="f-reminder" type="time"/>
+      </div>
+      <div class="fg">
+        <label>הערה</label>
+        <input id="f-note" type="text" placeholder="הערה קצרה..."/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('habit-modal')">ביטול</button>
+      <button class="btn btn-primary" onclick="saveHabit()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- SW -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDFF6FoZUhwtQUykjuSRMMGRnr5gH2u8rw",
+  authDomain: "sport-2297b.firebaseapp.com",
+  databaseURL: "https://sport-2297b-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "sport-2297b",
+  storageBucket: "sport-2297b.firebasestorage.app",
+  messagingSenderId: "1079157877126",
+  appId: "1:1079157877126:web:eb3bc3b0f7085ff952e407"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const UID = 'boazyi_habits';
+
+let habits = [];
+let habitLog = []; // [{habitId, date, value, type}]
+let histHabitFilter = 'all';
+let ignoreNext = 0;
+let editHabitId = null;
+let trackType = 'check';
+
+// ── PWA ──────────────────────────────────────────────────
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('install-banner').classList.add('show');
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').classList.remove('show');
+});
+function installApp(){ if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById('install-banner').classList.remove('show'); }); } }
+function dismissInstall(){ document.getElementById('install-banner').classList.remove('show'); }
+
+// ── Helpers ───────────────────────────────────────────────
+function todayStr(){ return toLocalDateStr(new Date()); }
+function toLocalDateStr(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function saveAll(){
+  db.ref(UID+'/habits').set(habits);
+  db.ref(UID+'/log').set(habitLog.length ? habitLog : null);
+}
+function showStatus(msg, color='var(--green)'){
+  const el=document.getElementById('sync-status');
+  if(el){ el.textContent=msg; el.style.color=color; setTimeout(()=>el.textContent='',3000); }
+}
+
+// ── Tab switching ─────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['today','history','stats'][i]===tab));
+  ['today','history','stats'].forEach(p=>document.getElementById('panel-'+p).style.display=p===tab?'block':'none');
+  document.getElementById('fab-btn').style.display=tab==='today'?'block':'none';
+  if(tab==='history') renderHistory();
+  if(tab==='stats') renderStats();
+}
+
+// ── TODAY PANEL ───────────────────────────────────────────
+function getTodayLog(habitId){
+  return habitLog.filter(l=>l.habitId===habitId && l.date===todayStr());
+}
+function getTodayValue(habitId){
+  const logs = getTodayLog(habitId);
+  return logs.reduce((s,l)=>s+(l.value||0), 0);
+}
+function isDoneToday(habit){
+  if(habit.type==='check') return getTodayLog(habit.id).length > 0;
+  return getTodayValue(habit.id) >= (habit.target||1);
+}
+
+function getStreak(habit){
+  let streak=0, d=new Date();
+  // Don't count today in streak yet if not done
+  while(true){
+    const ds=toLocalDateStr(d);
+    const dayLogs=habitLog.filter(l=>l.habitId===habit.id && l.date===ds);
+    const done = habit.type==='check' ? dayLogs.length>0 : dayLogs.reduce((s,l)=>s+(l.value||0),0)>=(habit.target||1);
+    if(!done) break;
+    streak++;
+    d.setDate(d.getDate()-1);
+  }
+  return streak;
+}
+
+function getPct(habit, days=30){
+  let done=0;
+  for(let i=0;i<days;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const ds=toLocalDateStr(d);
+    const dayLogs=habitLog.filter(l=>l.habitId===habit.id && l.date===ds);
+    const isDone=habit.type==='check'?dayLogs.length>0:dayLogs.reduce((s,l)=>s+(l.value||0),0)>=(habit.target||1);
+    if(isDone) done++;
+  }
+  return Math.round((done/days)*100);
+}
+
+function getWeekDots(habit){
+  const dots=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const ds=toLocalDateStr(d);
+    const dayLogs=habitLog.filter(l=>l.habitId===habit.id && l.date===ds);
+    const isDone=habit.type==='check'?dayLogs.length>0:dayLogs.reduce((s,l)=>s+(l.value||0),0)>=(habit.target||1);
+    const isToday=i===0;
+    const isFuture=false;
+    dots.push({isDone, isToday, ds});
+  }
+  return dots;
+}
+
+function renderToday(){
+  const today = new Date().toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('today-title').textContent = today;
+  const list = document.getElementById('habit-list');
+  if(!habits.length){
+    list.innerHTML='<div class="empty"><div class="empty-icon">✨</div><div class="empty-txt">אין הרגלים עדיין</div><div style="font-size:13px;margin-top:6px;color:var(--muted)">לחץ "+ הרגל חדש" להתחלה</div></div>';
+    return;
+  }
+  list.innerHTML = habits.map(h=>{
+    const done = isDoneToday(h);
+    const streak = getStreak(h);
+    const pct = getPct(h);
+    const dots = getWeekDots(h);
+    const dotHtml = dots.map(d=>`<div class="week-dot ${d.isDone?'done':''} ${d.isToday?'today':''}"></div>`).join('');
+
+    let bottomHtml = '';
+    if(h.type==='check'){
+      bottomHtml = `<button class="check-btn ${done?'done':''}" onclick="toggleCheck('${h.id}')">${done?'✓ בוצע היום!':'סמן כבוצע'}</button>`;
+    } else {
+      const val = getTodayValue(h.id);
+      const target = h.target||1;
+      const unit = h.unit||'';
+      if(done){
+        bottomHtml = `<div class="count-done">✓ יעד הושג! ${val}${unit?'/'+unit:''}</div>`;
+      } else {
+        bottomHtml = `<div class="count-row">
+          <button class="count-btn" onclick="addCount('${h.id}',-1)">−</button>
+          <div>
+            <div class="count-val">${val}</div>
+            <div class="count-target">מתוך ${target}${unit?' '+unit:''}</div>
+          </div>
+          <button class="count-btn" onclick="addCount('${h.id}',1)">+</button>
+        </div>`;
+      }
+    }
+
+    return `<div class="habit-card ${done?'done-today':''}">
+      <div class="habit-top">
+        <div>
+          <div class="habit-name">${h.name}</div>
+          <div class="habit-freq">${h.type==='count'?'יעד: '+(h.target||1)+(h.unit?' '+h.unit:''):'יומי'} ${h.note?'• '+h.note:''}</div>
+        </div>
+        <div class="habit-actions">
+          <button class="edit-btn" onclick="openEditHabit('${h.id}')">✏</button>
+          <button class="del-btn" onclick="deleteHabit('${h.id}')">&#xD7;</button>
+        </div>
+      </div>
+      <div class="streak-row">
+        <div class="streak-badge">🔥 ${streak} ימים</div>
+        <div class="streak-pct">${pct}% ב-30 יום</div>
+      </div>
+      <div class="week-dots">${dotHtml}</div>
+      ${bottomHtml}
+    </div>`;
+  }).join('');
+}
+
+function toggleCheck(habitId){
+  const today = todayStr();
+  const existing = habitLog.findIndex(l=>l.habitId===habitId && l.date===today);
+  if(existing>=0){
+    habitLog.splice(existing,1);
+  } else {
+    habitLog.push({habitId, date:today, value:1, type:'check', ts:new Date().toISOString()});
+  }
+  ignoreNext=1;
+  db.ref(UID+'/log').set(habitLog.length?habitLog:null);
+  renderToday();
+}
+
+function addCount(habitId, delta){
+  const today = todayStr();
+  const habit = habits.find(h=>h.id===habitId);
+  const existing = habitLog.find(l=>l.habitId===habitId && l.date===today && l.type==='count');
+  if(existing){
+    existing.value = Math.max(0, (existing.value||0)+delta);
+    if(existing.value===0) habitLog.splice(habitLog.indexOf(existing),1);
+  } else if(delta>0){
+    habitLog.push({habitId, date:today, value:1, type:'count', ts:new Date().toISOString()});
+  }
+  ignoreNext=1;
+  db.ref(UID+'/log').set(habitLog.length?habitLog:null);
+  renderToday();
+}
+
+// ── HABIT CRUD ────────────────────────────────────────────
+function setTrackType(t){
+  trackType=t;
+  document.getElementById('tt-check').classList.toggle('active',t==='check');
+  document.getElementById('tt-count').classList.toggle('active',t==='count');
+  document.getElementById('target-row').style.display=t==='count'?'flex':'none';
+  document.getElementById('unit-row').style.display=t==='count'?'flex':'none';
+}
+
+function openAddHabit(){
+  editHabitId=null;
+  document.getElementById('habit-modal-title').textContent='הרגל חדש';
+  document.getElementById('f-hname').value='';
+  document.getElementById('f-target').value='';
+  document.getElementById('f-unit').value='';
+  document.getElementById('f-reminder').value='';
+  document.getElementById('f-note').value='';
+  setTrackType('check');
+  document.getElementById('habit-modal').classList.add('open');
+}
+
+function openEditHabit(id){
+  editHabitId=id;
+  const h=habits.find(h=>h.id===id);
+  document.getElementById('habit-modal-title').textContent='ערוך הרגל';
+  document.getElementById('f-hname').value=h.name||'';
+  document.getElementById('f-target').value=h.target||'';
+  document.getElementById('f-unit').value=h.unit||'';
+  document.getElementById('f-reminder').value=h.reminder||'';
+  document.getElementById('f-note').value=h.note||'';
+  setTrackType(h.type||'check');
+  document.getElementById('habit-modal').classList.add('open');
+}
+
+function saveHabit(){
+  const name=document.getElementById('f-hname').value.trim();
+  if(!name){alert('נא להזין שם');return;}
+  const data={
+    name,
+    type:trackType,
+    target:parseInt(document.getElementById('f-target').value)||1,
+    unit:document.getElementById('f-unit').value.trim(),
+    reminder:document.getElementById('f-reminder').value,
+    note:document.getElementById('f-note').value.trim(),
+  };
+  if(editHabitId){
+    const i=habits.findIndex(h=>h.id===editHabitId);
+    habits[i]={...habits[i],...data};
+  } else {
+    habits.push({...data, id:'h_'+Date.now(), createdAt:new Date().toISOString()});
+  }
+  saveAll(); closeModal('habit-modal'); renderToday();
+}
+
+function deleteHabit(id){
+  const h=habits.find(h=>h.id===id);
+  if(!confirm('למחוק את ההרגל "'+h.name+'"?\nהיסטוריית ההרגל תישמר.')) return;
+  habits=habits.filter(h=>h.id!==id);
+  saveAll(); renderToday();
+}
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+// ── HISTORY PANEL ─────────────────────────────────────────
+function renderHistory(){
+  const filtersEl=document.getElementById('hist-habit-filters');
+  filtersEl.innerHTML=`<button class="fc ${histHabitFilter==='all'?'active':''}" onclick="setHistHabitFilter('all')">הכל</button>`+
+    habits.map(h=>`<button class="fc ${histHabitFilter===h.id?'active':''}" onclick="setHistHabitFilter('${h.id}')">${h.name}</button>`).join('');
+
+  const filtered = histHabitFilter==='all' ? habitLog : habitLog.filter(l=>l.habitId===histHabitFilter);
+  const sorted = [...filtered].sort((a,b)=>new Date(b.ts||b.date)-new Date(a.ts||a.date));
+  const listEl=document.getElementById('hist-list');
+
+  if(!sorted.length){
+    listEl.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-txt">אין היסטוריה עדיין</div></div>';
+    return;
+  }
+
+  // Group by date
+  const byDate={};
+  sorted.forEach(l=>{
+    if(!byDate[l.date]) byDate[l.date]=[];
+    byDate[l.date].push(l);
+  });
+
+  listEl.innerHTML=Object.entries(byDate).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,logs])=>{
+    const d=new Date(date+'T12:00:00');
+    const dateStr=d.toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const items=logs.map(l=>{
+      const h=habits.find(h=>h.id===l.habitId);
+      const name=h?h.name:l.habitId;
+      const val=l.type==='count'?` — ${l.value}${h?.unit?' '+h.unit:''}`:' — ✓ בוצע';
+      return `<div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+        <span style="font-size:13px;font-weight:600">${name}</span>
+        <span style="font-size:12px;color:var(--muted)">${val}</span>
+      </div>`;
+    }).join('');
+    return `<div class="hist-item"><div class="hist-date">${dateStr}</div>${items}</div>`;
+  }).join('');
+}
+
+function setHistHabitFilter(f){ histHabitFilter=f; renderHistory(); }
+
+// ── STATS PANEL ───────────────────────────────────────────
+function renderStats(){
+  // Global stats
+  const totalDone=habits.filter(h=>isDoneToday(h)).length;
+  const totalHabits=habits.length;
+  const allStreaks=habits.map(h=>getStreak(h));
+  const maxStreak=allStreaks.length?Math.max(...allStreaks):0;
+  const avgPct=habits.length?Math.round(habits.reduce((s,h)=>s+getPct(h),0)/habits.length):0;
+
+  document.getElementById('main-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-num">${totalDone}/${totalHabits}</div><div class="stat-lbl">הושלמו היום</div></div>
+    <div class="stat-card"><div class="stat-num">${maxStreak}🔥</div><div class="stat-lbl">רצף מקסימלי</div></div>
+    <div class="stat-card"><div class="stat-num">${avgPct}%</div><div class="stat-lbl">ממוצע ביצוע</div></div>`;
+
+  // Per habit stats
+  document.getElementById('habit-stats-list').innerHTML=habits.map(h=>{
+    const streak=getStreak(h);
+    const pct7=getPct(h,7);
+    const pct30=getPct(h,30);
+    return `<div class="period-card" style="margin-bottom:10px">
+      <div class="period-title">${h.name}</div>
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card"><div class="stat-num" style="font-size:18px">${streak}🔥</div><div class="stat-lbl">רצף</div></div>
+        <div class="stat-card"><div class="stat-num" style="font-size:18px">${pct7}%</div><div class="stat-lbl">7 ימים</div></div>
+        <div class="stat-card"><div class="stat-num" style="font-size:18px">${pct30}%</div><div class="stat-lbl">30 ימים</div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Period comparison
+  renderPeriodStats();
+}
+
+function getLogForPeriod(fromStr, toStr){
+  if(!fromStr || !toStr) return null;
+  const from=new Date(fromStr);
+  const to=new Date(toStr+'T23:59:59');
+  return habitLog.filter(l=>{
+    const d=new Date(l.date+'T12:00:00');
+    return d>=from && d<=to;
+  });
+}
+
+function buildPeriodSummary(logs){
+  if(!logs||!logs.length) return '<div style="font-size:13px;color:var(--muted)">אין נתונים לתקופה זו</div>';
+  const days=[...new Set(logs.map(l=>l.date))].length;
+  const byHabit={};
+  logs.forEach(l=>{
+    if(!byHabit[l.habitId]) byHabit[l.habitId]={done:0};
+    byHabit[l.habitId].done++;
+  });
+  const habitCount=Object.keys(byHabit).length;
+  return `<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card"><div class="stat-num" style="font-size:18px">${logs.length}</div><div class="stat-lbl">ביצועים</div></div>
+    <div class="stat-card"><div class="stat-num" style="font-size:18px">${days}</div><div class="stat-lbl">ימים פעילים</div></div>
+    <div class="stat-card"><div class="stat-num" style="font-size:18px">${habitCount}</div><div class="stat-lbl">הרגלים פעילים</div></div>
+  </div>`;
+}
+
+function renderPeriodStats(){
+  const fromA=document.getElementById('pa-from')?.value;
+  const toA=document.getElementById('pa-to')?.value;
+  const fromB=document.getElementById('pb-from')?.value;
+  const toB=document.getElementById('pb-to')?.value;
+  const logsA=getLogForPeriod(fromA,toA);
+  const logsB=getLogForPeriod(fromB,toB);
+
+  document.getElementById('pa-results').innerHTML=logsA?buildPeriodSummary(logsA):'<div style="font-size:13px;color:var(--muted)">בחר תאריכים לתקופה א</div>';
+  document.getElementById('pb-results').innerHTML=logsB?buildPeriodSummary(logsB):'<div style="font-size:13px;color:var(--muted)">בחר תאריכים לתקופה ב</div>';
+
+  const compareCard=document.getElementById('compare-card');
+  if(logsA&&logsA.length&&logsB&&logsB.length){
+    const daysA=[...new Set(logsA.map(l=>l.date))].length;
+    const daysB=[...new Set(logsB.map(l=>l.date))].length;
+    const metrics=[
+      {label:'ביצועים סה"כ', a:logsA.length, b:logsB.length},
+      {label:'ימים פעילים', a:daysA, b:daysB},
+      {label:'ביצועים ליום', a:(logsA.length/daysA).toFixed(1), b:(logsB.length/daysB).toFixed(1)},
+    ];
+    document.getElementById('compare-grid').innerHTML=
+      `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted)">
+        <span>מדד</span><span style="color:var(--indigo)">תקופה א</span><span style="color:var(--green)">תקופה ב</span><span>שינוי</span>
+      </div>`+
+      metrics.map(m=>{
+        const diff=parseFloat(m.b)-parseFloat(m.a);
+        const pct=m.a>0?Math.round((diff/parseFloat(m.a))*100):0;
+        const color=diff>0?'var(--green)':diff<0?'var(--red)':'var(--muted)';
+        const arrow=diff>0?'↑':diff<0?'↓':'=';
+        return `<div class="compare-row">
+          <span class="compare-label">${m.label}</span>
+          <span class="compare-a">${m.a}</span>
+          <span class="compare-b">${m.b}</span>
+          <span class="compare-diff" style="color:${color}">${arrow}${Math.abs(pct)}%</span>
+        </div>`;
+      }).join('');
+    compareCard.style.display='block';
+  } else {
+    compareCard.style.display='none';
+  }
+}
+
+function setPeriod(p, q){
+  const now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  let from,to;
+  if(q==='week'){
+    const day=today.getDay();
+    from=new Date(today); from.setDate(today.getDate()-day);
+    to=new Date(today);
+  } else if(q==='lastweek'){
+    const day=today.getDay();
+    from=new Date(today); from.setDate(today.getDate()-day-7);
+    to=new Date(from); to.setDate(from.getDate()+6);
+  } else if(q==='month'){
+    from=new Date(today.getFullYear(),today.getMonth(),1);
+    to=new Date(today);
+  } else if(q==='lastmonth'){
+    from=new Date(today.getFullYear(),today.getMonth()-1,1);
+    to=new Date(today.getFullYear(),today.getMonth(),0);
+  }
+  document.getElementById('p'+p+'-from').value=toLocalDateStr(from);
+  document.getElementById('p'+p+'-to').value=toLocalDateStr(to);
+  renderStats();
+}
+
+// ── Firebase listener ─────────────────────────────────────
+db.ref(UID).on('value', snapshot => {
+  if(ignoreNext>0){ ignoreNext--; return; }
+  const data=snapshot.val();
+  if(data){
+    habits=Array.isArray(data.habits)?data.habits:(data.habits?Object.values(data.habits):[]);
+    habitLog=Array.isArray(data.log)?data.log:(data.log?Object.values(data.log):[]);
+  } else {
+    habits=[]; habitLog=[];
+  }
+  renderToday();
+  if(document.getElementById('panel-history').style.display!=='none') renderHistory();
+  if(document.getElementById('panel-stats').style.display!=='none') renderStats();
+  showStatus('✓ מסונכרן');
+}, error => {
+  showStatus('⚠ שגיאת חיבור','var(--red)');
+});
+
+// ── SW ────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(e=>console.log(e));
+}
+</script>
+</body>
+</html>
